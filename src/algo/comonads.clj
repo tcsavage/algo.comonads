@@ -3,28 +3,25 @@
 
 (defmacro comonad
   "Define a comonad by defining the comonad operations. The definitions
-   are written like bindings to the comonad operations w-extend and
-   w-extract (required)"
+   are written like bindings to the comonad operations w-extract, w-duplicate and
+   w-fmap (required)."
   [operations]
   `(let [~'w-extract   ::this-comonad-does-not-define-w-extract
          ~'w-duplicate ::this-comonad-does-not-define-w-extract
          ~'w-fmap      ::this-comonad-does-not-define-w-fmap
-         ~'w-extend    ::this-comonad-does-not-define-w-extend
          ~@operations]
      {:w-extract ~'w-extract
       :w-duplicate ~'w-duplicate
-      :w-fmap ~'w-fmap
-      :w-extend ~'w-extend}))
+      :w-fmap ~'w-fmap}))
 
 (defsymbolmacro w-extract w-extract)
 (defsymbolmacro w-duplicate w-duplicate)
 (defsymbolmacro w-fmap w-fmap)
-(defsymbolmacro w-extend w-extend)
 
 (defmacro defcomonad
   "Define a named comonad by defining the comonad operations. The definitions
-   are written like bindings to the comonad operations w-extend and
-   w-extract (required)."
+   are written like bindings to the comonad operations w-extract, w-duplicate and
+   w-fmap (required)."
 
   ([name doc-string operations]
    (let [doc-name (with-meta name {:doc doc-string})]
@@ -42,8 +39,7 @@
   (let [[name options]  (name-with-attributes name options)
         fn-name (symbol (str *ns*) (format "w+%s+w" (str name)))
         make-fn-body    (fn [args expr]
-                          (list (vec (concat ['w-extract 'w-duplicate
-                                              'w-fmap 'w-extend] args))
+                          (list (vec (concat ['w-extract 'w-duplicate 'w-fmap] args))
                                 (list `with-symbol-macros expr)))]
     (if (list? (first options))
       ; multiple arities
@@ -51,14 +47,12 @@
             exprs           (map second options)
             ]
         `(do
-           (defsymbolmacro ~name (partial ~fn-name ~'w-extract ~'w-duplicate
-                                                   ~'w-fmap ~'w-extend))
+           (defsymbolmacro ~name (partial ~fn-name ~'w-extract ~'w-duplicate ~'w-fmap))
            (defn ~fn-name ~@(map make-fn-body arglists exprs))))
       ; single arity
       (let [[args expr] options]
         `(do
-           (defsymbolmacro ~name (partial ~fn-name ~'w-extract ~'w-duplicate
-                                                   ~'w-fmap ~'w-extend))
+           (defsymbolmacro ~name (partial ~fn-name ~'w-extract ~'w-duplicate ~'w-fmap))
            (defn ~fn-name ~@(make-fn-body args expr)))))))
 
 (defmacro with-comonad
@@ -69,57 +63,10 @@
   `(let [name#         ~comonad
          ~'w-extract   (:w-extract name#)
          ~'w-duplicate (:w-duplicate name#)
-         ~'w-fmap      (:w-fmap name#)
-         ~'w-extend    (:w-extend name#)]
+         ~'w-fmap      (:w-fmap name#)]
      (with-symbol-macros ~@exprs)))
 
-(def w-store-fmap (fn [f {stored :stored accessor :accessor}] {:stored stored :accessor #(f (accessor %))}))
-(def w-store-duplicate (fn [{stored :stored accessor :accessor}] {:stored stored :accessor (fn [x] {:stored x :accessor accessor})}))
-
-(defcomonad store-w
-  "Comonad constructed of a value `s` and a function `s -> a`."
-  [w-extract (fn [{stored :stored accessor :accessor}] (accessor stored))
-   w-duplicate w-store-duplicate
-   w-fmap w-store-fmap
-   w-extend (fn [f w] (w-store-fmap f (w-store-duplicate w)))])
-
-(defn u-left [{focus :focus left :left right :right}] {:focus (first left) :left (rest left) :right (cons focus right)})
-(defn u-right [{focus :focus left :left right :right}] {:focus (first right) :right (rest right) :left (cons focus left)})
-(defn u-show [n u] (concat (reverse (take n (:left u)))
-                           [\| (:focus u) \|]
-                           (take n (:right u))))
-
-(def w-universe-duplicate (fn [u] {:focus u :left (rest (iterate u-left u)) :right (rest (iterate u-right u))}))
-(def w-universe-fmap (fn [f {focus :focus left :left right :right}] {:focus (f focus) :left (map f left) :right (map f right)}))
-
-(defcomonad universe-w
-  [w-extract (fn [{focus :focus}] focus)
-   w-duplicate w-universe-duplicate
-   w-fmap w-universe-fmap
-   w-extend (fn [f w] (w-universe-fmap f (w-universe-duplicate w)))])
-
-(def rule-110 {[1 1 1] 0
-               [1 1 0] 1
-               [1 0 1] 1
-               [1 0 0] 0
-               [0 1 1] 1
-               [0 1 0] 1
-               [0 0 1] 1
-               [0 0 0] 0})
-
-(defn make-ca
-  [rule]
-  (fn [{focus :focus
-        [l0 & _] :left
-        [r0 & _] :right}]
-    (or
-     (get rule [l0 focus r0])
-     0)))
-
-(def u0 {:focus 1 :left [0 0 0 0 0] :right [0 0 0 0 0]})
-
-(with-comonad universe-w
-  (u-show 5
-          (last
-           (take 4
-                 (iterate (partial w-extend (make-ca rule-110)) u0)))))
+(defcomonadfn w-extend
+  "Generate a new value from the context."
+  [f w]
+  (w-fmap f (w-duplicate w)))
