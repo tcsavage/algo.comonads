@@ -1,4 +1,6 @@
-(ns algo.comonads.store
+(ns
+  #^{:author "Tom Savage"}
+  algo.comonads.store
   (:require [algo.comonads :refer :all]))
 
 (def w-store-fmap (fn [f {stored :stored accessor :accessor}] {:stored stored :accessor #(f (accessor %))}))

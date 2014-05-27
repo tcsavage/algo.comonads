@@ -1,4 +1,6 @@
-(ns algo.comonads
+(ns
+  #^{:author "Tom Savage"}
+  algo.comonads
   (:use [clojure.tools.macro :only (with-symbol-macros defsymbolmacro name-with-attributes)]))
 
 (defmacro comonad
@@ -7,7 +9,7 @@
    w-fmap (required)."
   [operations]
   `(let [~'w-extract   ::this-comonad-does-not-define-w-extract
-         ~'w-duplicate ::this-comonad-does-not-define-w-extract
+         ~'w-duplicate ::this-comonad-does-not-define-w-duplicate
          ~'w-fmap      ::this-comonad-does-not-define-w-fmap
          ~@operations]
      {:w-extract ~'w-extract
