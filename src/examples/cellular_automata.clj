@@ -26,6 +26,7 @@
          :left (take 10 (repeat 0))
          :right (take 10 (repeat 0))})
 
-(with-comonad universe-w
-  (doseq [i (take 10 (iterate (partial w-extend (make-ca rule-110)) u0))]
-    (println (u-show 9 i))))
+(defn run-cellular-automaton
+  (with-comonad universe-w
+    (doseq [i (take 10 (iterate (partial w-extend (make-ca rule-110)) u0))]
+      (println (u-show 9 i)))))
