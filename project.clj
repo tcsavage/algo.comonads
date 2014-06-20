@@ -1,4 +1,4 @@
-(defproject tcsavage/algo.comonads "0.1.0-SNAPSHOT"
+(defproject tcsavage/algo.comonads "0.1.2-SNAPSHOT"
   :description "Comonads for Clojure"
   :url "https://github.com/tcsavage/algo.comonads"
   :license {:name "Eclipse Public License"
